@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# .txt File in root that store my commands
+/SETUP_EACH_TIME.txt
+
 # IntelliJ related
 *.iml
 *.ipr
