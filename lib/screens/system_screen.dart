@@ -1,45 +1,67 @@
 import 'package:flutter/material.dart';
-import '../models/quest.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift; // Alias to avoid conflicts
+import '../database/database.dart';
+import '../providers/database_provider.dart';
 
-class SystemScreen extends StatefulWidget {
+// Changed from StatefulWidget to ConsumerStatefulWidget
+class SystemScreen extends ConsumerStatefulWidget {
   const SystemScreen({super.key});
 
   @override
-  State<SystemScreen> createState() => _SystemScreenState();
+  ConsumerState<SystemScreen> createState() => _SystemScreenState();
 }
 
-class _SystemScreenState extends State<SystemScreen> {
-  // 1. The Data (State)
-  final List<Quest> quests = [
-    Quest(title: "PUSH-UPS", target: 100),
-    Quest(title: "CURL-UPS", target: 100),
-    Quest(title: "SQUATS", target: 100),
-    Quest(title: "RUNNING", target: 10, unit: "km"),
-  ];
+class _SystemScreenState extends ConsumerState<SystemScreen> {
+  // LOGIC: Toggle the quest status in the Database
+  void _toggleQuest(Quest quest) {
+    final database = ref.read(databaseProvider);
 
-  // 2. The Logic (Controller)
-  void _toggleQuest(int index) {
-    setState(() {
-      // Toggle completion status
-      quests[index].isCompleted = !quests[index].isCompleted;
+    final newStatus = !quest.isCompleted;
+    final newCurrent = newStatus ? quest.target : 0;
 
-      // If completed, set current to target. If unchecked, reset to 0.
-      if (quests[index].isCompleted) {
-        quests[index].current = quests[index].target;
-      } else {
-        quests[index].current = 0;
-      }
-    });
+    // Create a copy of the quest with updated fields
+    final updatedQuest = quest.copyWith(
+      isCompleted: newStatus,
+      current: newCurrent,
+    );
+
+    database.updateQuest(updatedQuest);
+  }
+
+  // LOGIC: Add a dummy quest for testing (We will remove this later)
+  void _addDebugQuest() {
+    final database = ref.read(databaseProvider);
+    final companion = QuestsCompanion(
+      title: const drift.Value("NEW QUEST"),
+      target: const drift.Value(10),
+      current: const drift.Value(0),
+      isCompleted: const drift.Value(false),
+    );
+    database.addQuest(companion);
+  }
+
+  // LOGIC: Delete a quest (Long press to delete)
+  void _deleteQuest(Quest quest) {
+    ref.read(databaseProvider).deleteQuest(quest);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch the database stream
+    final database = ref.watch(databaseProvider);
+    final stream = database.watchAllQuests();
+
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addDebugQuest,
+        backgroundColor: const Color(0xFF2196F3),
+        child: const Icon(Icons.add),
+      ),
       body: Center(
         child: Container(
-          // Window Dimensions
           width: 350,
-          height: 550,
+          height: 600, // Made it taller
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xFF001E36).withOpacity(0.95),
@@ -88,63 +110,83 @@ class _SystemScreenState extends State<SystemScreen> {
               ),
               const SizedBox(height: 30),
 
-              // 3. The List Builder (Dynamic Rendering)
+              // THE REACTIVE LIST
               Expanded(
-                child: ListView.builder(
-                  itemCount: quests.length,
-                  itemBuilder: (context, index) {
-                    final quest = quests[index];
-                    return GestureDetector(
-                      onTap: () =>
-                          _toggleQuest(index), // Connects the tap to logic
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 5,
-                          horizontal: 5,
+                child: StreamBuilder<List<Quest>>(
+                  stream: stream,
+                  builder: (context, snapshot) {
+                    // 1. Loading State
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    // 2. Error State
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          "Error: ${snapshot.error}",
+                          style: const TextStyle(color: Colors.red),
                         ),
-                        color: Colors.transparent, // Required for tap target
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              // Change icon based on state
-                              quest.isCompleted
-                                  ? "[ X ]  ${quest.title}"
-                                  : "[   ]  ${quest.title}",
-                              style: TextStyle(
-                                color: quest.isCompleted
-                                    ? Colors.white
-                                    : Colors.white70,
-                                fontSize: 18,
-                                decoration: quest.isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                decorationColor: const Color(0xFF2196F3),
-                                decorationThickness: 2,
-                              ),
-                            ),
-                            Text(
-                              quest.progressString,
-                              style: TextStyle(
-                                color: quest.isCompleted
-                                    ? const Color(0xFF2196F3)
-                                    : Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
+                      );
+                    }
+                    // 3. Data State
+                    final quests = snapshot.data ?? [];
+
+                    if (quests.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "NO QUESTS ACTIVE",
+                          style: TextStyle(color: Colors.white30),
                         ),
-                      ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: quests.length,
+                      itemBuilder: (context, index) {
+                        final quest = quests[index];
+                        return GestureDetector(
+                          onTap: () => _toggleQuest(quest),
+                          onLongPress: () => _deleteQuest(quest),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.symmetric(vertical: 5),
+                            color: Colors.transparent,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  quest.isCompleted
+                                      ? "[ X ]  ${quest.title}"
+                                      : "[   ]  ${quest.title}",
+                                  style: TextStyle(
+                                    color: quest.isCompleted
+                                        ? Colors.white
+                                        : Colors.white70,
+                                    fontSize: 18,
+                                    decoration: quest.isCompleted
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    decorationColor: const Color(0xFF2196F3),
+                                    decorationThickness: 2,
+                                  ),
+                                ),
+                                Text(
+                                  "${quest.current} / ${quest.target}",
+                                  style: TextStyle(
+                                    color: quest.isCompleted
+                                        ? const Color(0xFF2196F3)
+                                        : Colors.white70,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-              ),
-
-              const Text(
-                "WARNING: Failure to complete this quest will result in a penalty.",
-                style: TextStyle(color: Colors.redAccent, fontSize: 10),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

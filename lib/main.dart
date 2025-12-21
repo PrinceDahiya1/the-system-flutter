@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import this
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/system_screen.dart'; // Import the new screen
+import 'screens/system_screen.dart';
 
 void main() {
-  runApp(const TheSystemApp());
+  // ProviderScope is the "Parent" that holds all database connections
+  runApp(const ProviderScope(child: TheSystemApp()));
 }
 
 class TheSystemApp extends StatelessWidget {
