@@ -30,4 +30,29 @@ class AppDatabase extends _$AppDatabase {
       // If you need web support, see https://drift.simonbinder.eu/platforms/web/
     );
   }
+
+  // 1. READ: Watch all quests (Reactive)
+  // Returns a Stream that emits a new list whenever the table changes.
+  Stream<List<Quest>> watchAllQuests() {
+    return (select(
+      quests,
+    )..orderBy([(t) => OrderingTerm(expression: t.id)])).watch();
+  }
+
+  // 2. CREATE: Add a new quest
+  // We use 'QuestsCompanion' because the ID is auto-increment (we don't set it).
+  Future<int> addQuest(QuestsCompanion entry) {
+    return into(quests).insert(entry);
+  }
+
+  // 3. UPDATE: Toggle status or edit details
+  // Takes a full 'Quest' object (which already has an ID).
+  Future<bool> updateQuest(Quest quest) {
+    return update(quests).replace(quest);
+  }
+
+  // 4. DELETE: Remove a quest
+  Future<int> deleteQuest(Quest quest) {
+    return delete(quests).delete(quest);
+  }
 }
