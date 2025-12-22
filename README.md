@@ -1,16 +1,7 @@
-# the_system
+# The System (Gamified Habit Tracker) 
+### 🚧 STATUS: PRE-ALPHA / ACTIVE DEVELOPMENT 🚧
 
-A new Flutter project.
+**Current State:** Prototyping core logic and state management.
+**Stack:** Flutter, Dart, Firebase (Planned).
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+*Note: This repository is currently a sandbox for testing RPG progression algorithms. The code is experimental and subject to heavy refactoring. UI is currently placeholder.*
