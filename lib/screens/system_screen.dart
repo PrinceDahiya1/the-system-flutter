@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift; // Alias to avoid conflicts
+// ignore: unused_import
+import 'package:google_fonts/google_fonts.dart';
 import '../database/database.dart';
 import '../providers/database_provider.dart';
 
@@ -29,7 +31,108 @@ class _SystemScreenState extends ConsumerState<SystemScreen> {
     database.updateQuest(updatedQuest);
   }
 
+  // ignore: unused_element
+  Future<void> _showAddQuestDialog(BuildContext context) async {
+    final nameController = TextEditingController();
+    final targetController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF001E36),
+          // Add a glow effect to the dialog
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Color(0xFF2196F3), width: 2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          title: const Text(
+            "NEW QUEST",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. QUEST NAME INPUT
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white), // Input text color
+                cursorColor: const Color(0xFF2196F3),
+                decoration: const InputDecoration(
+                  labelText: 'Quest Name',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white30),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF2196F3)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15), // Spacing
+              // 2. TARGET INPUT
+              TextField(
+                controller: targetController,
+                style: const TextStyle(color: Colors.white),
+                keyboardType: TextInputType.number,
+                cursorColor: const Color(0xFF2196F3),
+                decoration: const InputDecoration(
+                  labelText: 'Target (e.g., 10)',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white30),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF2196F3)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                "CANCEL",
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final name = nameController.text;
+                final targetString = targetController.text;
+
+                if (name.isEmpty || targetString.isEmpty) return;
+                final targetInt = int.tryParse(targetString);
+
+                final companion = QuestsCompanion(
+                  title: drift.Value(name),
+                  target: drift.Value(targetInt ?? 0),
+                  current: const drift.Value(0),
+                  isCompleted: const drift.Value(false),
+                );
+
+                // Add to DB
+                ref.read(databaseProvider).addQuest(companion);
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                "ACCEPT",
+                style: TextStyle(
+                  color: Color(0xFF2196F3),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // LOGIC: Add a dummy quest for testing (We will remove this later)
+  // ignore: unused_element
   void _addDebugQuest() {
     final database = ref.read(databaseProvider);
     final companion = QuestsCompanion(
@@ -54,7 +157,8 @@ class _SystemScreenState extends ConsumerState<SystemScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: _addDebugQuest,
+        onPressed: () => _showAddQuestDialog(context),
+        //_addDebugQuest, // This is where we call the function we want to be executed when we press the + button
         backgroundColor: const Color(0xFF2196F3),
         child: const Icon(Icons.add),
       ),
