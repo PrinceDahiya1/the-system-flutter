@@ -38,7 +38,7 @@ If you want to run the Phase 1 build:
 
 1.  **Clone the repo**
     ```bash
-    git clone [https://github.com/PrinceDahiya1/the_system.git](https://github.com/PrinceDahiya1/the_system.git)
+    git clone https://github.com/PrinceDahiya1/the_system.git
     ```
 2.  **Install dependencies**
     ```bash
